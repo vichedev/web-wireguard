@@ -3,17 +3,17 @@ import { Copy, Check, Terminal, Info, Zap, Server } from "lucide-react";
 
 const MikroTikConfig = ({ sharedState, setSharedState }) => {
   const [config, setConfig] = useState({
-    iface: "wg-vpn",
-    port: "51820",
-    wgIp: "10.8.0.1/24",
+    iface: "",
+    port: "",
+    wgIp: "",
     network: "10.8.0.0/24",
     natOutType: "interface",
-    wan: "ether1",
+    wan: "",
     natMode: "masquerade",
     srcNatIp: "",
-    peerName: "mobile-client",
+    peerName: "",
     peerKey: "",
-    clientIp: "10.8.0.2/32",
+    clientIp: "",
     peerAllowed: "10.8.0.2/32",
   });
 
