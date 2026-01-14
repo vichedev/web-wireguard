@@ -1,0 +1,15 @@
+services:
+  web-wireguard:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: web-wireguard
+    ports:
+      - "8389:80"
+    networks:
+      - webnet
+    restart: always
+
+networks:
+  webnet:
+    driver: bridge
