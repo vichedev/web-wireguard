@@ -1,89 +1,116 @@
-import { useState } from "react";
-import { Server, Smartphone, ArrowLeft, Shield, Activity } from "lucide-react";
+import { Server, Smartphone, ArrowLeft, Shield, LogOut, Save } from "lucide-react";
 import MikroTikConfig from "./MikroTikConfig";
 import AppConfig from "./AppConfig";
+import ThemeToggle from "./ThemeToggle";
+import { usePersistentState, clearSession } from "../hooks/useSessionState";
 
-const WireGuardGenerator = ({ onBackToHome }) => {
-  const [activeTab, setActiveTab] = useState("mikrotik");
-  const [sharedState, setSharedState] = useState({
+const WireGuardGenerator = ({ onBackToHome, theme, toggleTheme }) => {
+  const [activeTab, setActiveTab] = usePersistentState("activeTab", "mikrotik");
+  const [sharedState, setSharedState] = usePersistentState("shared", {
     port: "",
     clientIp: "",
     endpointIp: "",
+    network: "",
   });
 
+  const handleEndSession = () => {
+    const ok = window.confirm(
+      "¿Terminar la sesión? Se borrarán todas las configuraciones guardadas."
+    );
+    if (ok) {
+      clearSession();
+      window.location.reload();
+    }
+  };
+
+  const isMikrotik = activeTab === "mikrotik";
+
   return (
-    <div className="min-h-screen bg-[#F8FAFC] py-8 px-4 md:px-8">
-      <div className="max-w-4xl mx-auto">
+    <div className="min-h-screen bg-slate-50 dark:bg-[#020617] text-slate-800 dark:text-slate-200 py-8 px-4 md:px-8 relative overflow-hidden transition-colors">
+      {/* Glows de fondo (solo modo oscuro) */}
+      <div className="hidden dark:block absolute top-[-15%] left-[-10%] w-[45%] h-[45%] bg-blue-600/10 rounded-full blur-[140px]" />
+      <div className="hidden dark:block absolute bottom-[-15%] right-[-10%] w-[45%] h-[45%] bg-indigo-600/10 rounded-full blur-[140px]" />
+
+      <div className="max-w-4xl mx-auto relative z-10">
         {/* Top Navigation */}
-        <nav className="flex items-center justify-between mb-10">
+        <nav className="flex items-center justify-between mb-10 gap-4 flex-wrap">
           <button
             onClick={onBackToHome}
-            className="group flex items-center gap-2 text-slate-500 hover:text-slate-900 transition-all font-medium text-sm"
+            className="group flex items-center gap-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-all font-medium text-sm"
           >
-            <div className="p-2 rounded-full group-hover:bg-slate-200 transition-colors">
+            <div className="p-2 rounded-full group-hover:bg-slate-200 dark:group-hover:bg-white/10 transition-colors">
               <ArrowLeft size={18} />
             </div>
             Volver al Panel
           </button>
 
-          <div className="flex items-center gap-2 text-blue-600 bg-blue-50 px-3 py-1 rounded-full border border-blue-100">
+          <div className="flex items-center gap-3 flex-wrap">
+            <ThemeToggle theme={theme} toggleTheme={toggleTheme} />
+
+            {/* Indicador de sesión */}
+            <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-500/10 px-3 py-1.5 rounded-full border border-emerald-200 dark:border-emerald-500/20">
+              <Save size={14} />
+              <span className="text-xs font-semibold">Sesión guardada</span>
+            </div>
+
+            <button
+              onClick={handleEndSession}
+              className="flex items-center gap-2 text-rose-600 dark:text-rose-300 bg-rose-50 dark:bg-rose-500/10 hover:bg-rose-100 dark:hover:bg-rose-500/20 px-3 py-1.5 rounded-full border border-rose-200 dark:border-rose-500/20 transition-colors"
+            >
+              <LogOut size={14} />
+              <span className="text-xs font-semibold">Terminar Sesión</span>
+            </button>
+          </div>
+        </nav>
+
+        {/* Header Section */}
+        <div className="mb-10 flex items-start justify-between gap-4 flex-wrap">
+          <div>
+            <h1 className="text-3xl md:text-4xl font-black text-slate-900 dark:text-white tracking-tight mb-2">
+              Configuración de Túnel
+            </h1>
+            <p className="text-slate-500 dark:text-slate-400 text-lg">
+              Define los parámetros de red para tu instancia de WireGuard.
+            </p>
+          </div>
+          <div className="flex items-center gap-2 text-blue-600 dark:text-blue-300 bg-blue-50 dark:bg-blue-500/10 px-3 py-1.5 rounded-full border border-blue-200 dark:border-blue-500/20">
             <Shield size={16} />
             <span className="text-xs font-bold uppercase tracking-wider">
               Generador Seguro
             </span>
           </div>
-        </nav>
-
-        {/* Header Section */}
-        <div className="mb-10 text-left">
-          <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight mb-2">
-            Configuración de Túnel
-          </h1>
-          <p className="text-slate-500 text-lg">
-            Define los parámetros de red para tu instancia de WireGuard.
-          </p>
         </div>
 
         {/* Main Interface */}
-        <div className="bg-white rounded-[2rem] shadow-sm border border-slate-200 overflow-hidden">
-          {/* Custom Tabs */}
-          <div className="flex p-2 bg-slate-100/50 gap-2">
+        <div className="bg-white dark:bg-slate-900/60 backdrop-blur-xl rounded-[2rem] shadow-sm dark:shadow-2xl border border-slate-200 dark:border-white/10 overflow-hidden">
+          {/* Tabs */}
+          <div className="flex p-2 bg-slate-100/70 dark:bg-black/20 gap-2 border-b border-slate-200 dark:border-white/5">
             <button
               onClick={() => setActiveTab("mikrotik")}
               className={`flex-1 flex items-center justify-center gap-3 py-4 rounded-xl font-bold transition-all ${
-                activeTab === "mikrotik"
-                  ? "bg-white text-blue-600 shadow-sm ring-1 ring-slate-200"
-                  : "text-slate-500 hover:bg-slate-100 hover:text-slate-700"
+                isMikrotik
+                  ? "bg-white dark:bg-blue-500/15 text-blue-600 dark:text-blue-300 shadow-sm ring-1 ring-slate-200 dark:ring-blue-500/30"
+                  : "text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/5 hover:text-slate-700 dark:hover:text-slate-200"
               }`}
             >
-              <Server
-                size={20}
-                className={
-                  activeTab === "mikrotik" ? "text-blue-600" : "text-slate-400"
-                }
-              />
+              <Server size={20} />
               MikroTik Server
             </button>
             <button
               onClick={() => setActiveTab("app")}
               className={`flex-1 flex items-center justify-center gap-3 py-4 rounded-xl font-bold transition-all ${
-                activeTab === "app"
-                  ? "bg-white text-emerald-600 shadow-sm ring-1 ring-slate-200"
-                  : "text-slate-500 hover:bg-slate-100 hover:text-slate-700"
+                !isMikrotik
+                  ? "bg-white dark:bg-emerald-500/15 text-emerald-600 dark:text-emerald-300 shadow-sm ring-1 ring-slate-200 dark:ring-emerald-500/30"
+                  : "text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/5 hover:text-slate-700 dark:hover:text-slate-200"
               }`}
             >
-              <Smartphone
-                size={20}
-                className={
-                  activeTab === "app" ? "text-emerald-600" : "text-slate-400"
-                }
-              />
+              <Smartphone size={20} />
               Dispositivo Cliente
             </button>
           </div>
 
-          <div className="p-8 md:p-12">
-            {activeTab === "mikrotik" ? (
+          <div className="p-6 md:p-10">
+            {isMikrotik ? (
               <MikroTikConfig
                 sharedState={sharedState}
                 setSharedState={setSharedState}
@@ -95,12 +122,14 @@ const WireGuardGenerator = ({ onBackToHome }) => {
         </div>
 
         {/* Status Bar */}
-        <div className="mt-8 flex items-center justify-center gap-6 text-slate-400 text-xs font-medium uppercase tracking-widest">
+        <div className="mt-8 flex items-center justify-center gap-4 text-slate-400 dark:text-slate-500 text-xs font-medium uppercase tracking-widest">
           <span className="flex items-center gap-1.5">
-            <Activity size={14} className="text-blue-500" /> Iniguality
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+            </span>
+            Guardado automático activo
           </span>
-          <span className="h-1 w-1 bg-slate-300 rounded-full"></span>
-          <span>Vice</span>
         </div>
       </div>
     </div>

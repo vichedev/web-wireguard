@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 
-const ParticlesBackground = () => {
+const ParticlesBackground = ({ theme = "dark" }) => {
   const canvasRef = useRef(null);
 
   useEffect(() => {
@@ -8,6 +8,15 @@ const ParticlesBackground = () => {
     const ctx = canvas.getContext("2d");
     let animationFrameId;
     let particles = [];
+
+    const isDark = theme === "dark";
+    // En claro usamos azul más oscuro (blue-600) y más opaco para que
+    // se note sobre el fondo blanco; en oscuro, azul-500 más suave.
+    const rgb = isDark ? "59, 130, 246" : "37, 99, 235";
+    // Multiplicadores de opacidad por tema
+    const dotBase = isDark ? 0.2 : 0.45;
+    const dotRange = isDark ? 0.5 : 0.5;
+    const lineMax = isDark ? 0.2 : 0.4;
 
     // Configurar tamaño del canvas
     const resizeCanvas = () => {
@@ -25,7 +34,7 @@ const ParticlesBackground = () => {
         this.size = Math.random() * 3 + 1;
         this.speedX = Math.random() * 1 - 0.5;
         this.speedY = Math.random() * 1 - 0.5;
-        this.opacity = Math.random() * 0.5 + 0.2;
+        this.opacity = Math.random() * dotRange + dotBase;
       }
 
       update() {
@@ -39,7 +48,7 @@ const ParticlesBackground = () => {
       }
 
       draw() {
-        ctx.fillStyle = `rgba(59, 130, 246, ${this.opacity})`;
+        ctx.fillStyle = `rgba(${rgb}, ${this.opacity})`;
         ctx.beginPath();
         ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
         ctx.fill();
@@ -67,8 +76,8 @@ const ParticlesBackground = () => {
           const distance = Math.sqrt(dx * dx + dy * dy);
 
           if (distance < 120) {
-            const opacity = (1 - distance / 120) * 0.2;
-            ctx.strokeStyle = `rgba(59, 130, 246, ${opacity})`;
+            const opacity = (1 - distance / 120) * lineMax;
+            ctx.strokeStyle = `rgba(${rgb}, ${opacity})`;
             ctx.lineWidth = 1;
             ctx.beginPath();
             ctx.moveTo(particles[a].x, particles[a].y);
@@ -98,7 +107,7 @@ const ParticlesBackground = () => {
       window.removeEventListener("resize", resizeCanvas);
       cancelAnimationFrame(animationFrameId);
     };
-  }, []);
+  }, [theme]);
 
   return (
     <canvas

@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(node --version)",
+      "PowerShell(npm --version)",
+      "PowerShell(npm install)",
+      "PowerShell(npm run dev)",
+      "PowerShell(npm run build 2>&1)"
+    ]
+  }
+}

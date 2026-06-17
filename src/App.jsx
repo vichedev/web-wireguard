@@ -1,9 +1,11 @@
-import { useState } from "react";
 import WelcomePage from "./components/WelcomePage";
 import WireGuardGenerator from "./components/WireGuardGenerator";
+import { usePersistentState } from "./hooks/useSessionState";
+import { useTheme } from "./hooks/useTheme";
 
 function App() {
-  const [showWelcome, setShowWelcome] = useState(true);
+  const [showWelcome, setShowWelcome] = usePersistentState("showWelcome", true);
+  const { theme, toggleTheme } = useTheme();
 
   const handleGetStarted = () => {
     setShowWelcome(false);
@@ -16,9 +18,17 @@ function App() {
   return (
     <>
       {showWelcome ? (
-        <WelcomePage onGetStarted={handleGetStarted} />
+        <WelcomePage
+          onGetStarted={handleGetStarted}
+          theme={theme}
+          toggleTheme={toggleTheme}
+        />
       ) : (
-        <WireGuardGenerator onBackToHome={handleBackToHome} />
+        <WireGuardGenerator
+          onBackToHome={handleBackToHome}
+          theme={theme}
+          toggleTheme={toggleTheme}
+        />
       )}
     </>
   );

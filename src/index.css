@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* Dark mode basado en la clase .dark (en <html>), no en prefers-color-scheme */
+@custom-variant dark (&:where(.dark, .dark *));
+
 @layer utilities {
     .animate-fade-in {
         animation: fadeIn 1s ease-in;
