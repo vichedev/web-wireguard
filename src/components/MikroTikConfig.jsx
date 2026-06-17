@@ -121,10 +121,13 @@ const MikroTikConfig = ({ sharedState, setSharedState }) => {
         ? `out-interface-list=${wanName}`
         : `out-interface=${wanName}`;
 
+    // IP pública para el src-nat: la del campo propio o la sincronizada del cliente
+    const publicIp = config.srcNatIp || sharedState.endpointIp || "";
+
     const nat =
-      config.natMode === "masquerade"
-        ? `add chain=srcnat src-address=${config.network} ${out} action=masquerade`
-        : `add chain=srcnat src-address=${config.network} ${out} action=src-nat to-addresses=${config.srcNatIp}`;
+      config.natMode === "srcnat"
+        ? `add chain=srcnat src-address=${config.network} ${out} action=src-nat to-addresses=${publicIp} place-before=0`
+        : `add chain=srcnat src-address=${config.network} ${out} action=masquerade place-before=0`;
 
     // Si el usuario eligió crear una lista nueva, añadimos el comando de creación
     const listCreation =
@@ -264,6 +267,26 @@ allowed-address=${config.peerAllowed}`;
                 onChange={(v) => handleChange("wanCustom", v)}
               />
             </div>
+          )}
+
+          {/* Tipo de NAT para la red privada */}
+          <SelectField
+            label="Tipo de NAT"
+            value={config.natMode}
+            onChange={(v) => handleChange("natMode", v)}
+            options={[
+              { label: "Masquerade (automático)", value: "masquerade" },
+              { label: "Src-NAT a IP pública", value: "srcnat" },
+            ]}
+          />
+
+          {config.natMode === "srcnat" && (
+            <InputField
+              label="IP Pública (NAT)"
+              placeholder="203.0.113.1"
+              value={config.srcNatIp || sharedState.endpointIp}
+              onChange={(v) => handleChange("srcNatIp", v)}
+            />
           )}
         </div>
       </section>

@@ -116,7 +116,10 @@ const WireGuardGenerator = ({ onBackToHome, theme, toggleTheme }) => {
                 setSharedState={setSharedState}
               />
             ) : (
-              <AppConfig sharedState={sharedState} />
+              <AppConfig
+                sharedState={sharedState}
+                setSharedState={setSharedState}
+              />
             )}
           </div>
         </div>

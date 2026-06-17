@@ -9,7 +9,7 @@ const DEFAULT_CONFIG = {
   endpointIp: "",
 };
 
-const AppConfig = ({ sharedState }) => {
+const AppConfig = ({ sharedState, setSharedState }) => {
   const [config, setConfig] = usePersistentState("appclient", DEFAULT_CONFIG);
 
   const [output, setOutput] = useState("");
@@ -17,6 +17,10 @@ const AppConfig = ({ sharedState }) => {
 
   const handleChange = (field, value) => {
     setConfig({ ...config, [field]: value });
+    // El Endpoint (IP pública) se comparte con la pestaña MikroTik (src-nat)
+    if (field === "endpointIp" && setSharedState) {
+      setSharedState({ ...sharedState, endpointIp: value });
+    }
   };
 
   const buildConfig = () => `[Interface]
