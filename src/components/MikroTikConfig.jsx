@@ -135,8 +135,7 @@ const MikroTikConfig = ({ sharedState, setSharedState }) => {
         ? `\n/interface/list\nadd name=${wanName} comment="Lista creada por WG Generator"\n`
         : "";
 
-    const result = `# --- WireGuard Server Configuration ---
-/interface/wireguard/add name=${config.iface} listen-port=${port}
+    const result = `/interface/wireguard/add name=${config.iface} listen-port=${port}
 
 /ip address
 add address=${config.wgIp} interface=${config.iface}
