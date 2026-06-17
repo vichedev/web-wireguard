@@ -13,7 +13,7 @@ import ThemeToggle from "./ThemeToggle";
 
 const WelcomePage = ({ onGetStarted, theme, toggleTheme }) => {
   return (
-    <div className="min-h-screen relative overflow-hidden bg-slate-50 dark:bg-[#020617] text-slate-700 dark:text-slate-200 selection:bg-blue-500/30 transition-colors">
+    <div className="min-h-screen flex flex-col relative overflow-hidden bg-slate-50 dark:bg-[#020617] text-slate-700 dark:text-slate-200 selection:bg-blue-500/30 transition-colors">
       {/* Fondo de partículas (visible en claro y oscuro) */}
       <ParticlesBackground theme={theme} />
 
@@ -26,7 +26,7 @@ const WelcomePage = ({ onGetStarted, theme, toggleTheme }) => {
         <ThemeToggle theme={theme} toggleTheme={toggleTheme} />
       </div>
 
-      <div className="relative z-10 min-h-screen flex flex-col items-center justify-center px-6 py-12">
+      <div className="relative z-10 flex-1 flex flex-col items-center justify-center px-6 py-12">
         {/* Badge Superior */}
         <div className="mb-6 flex items-center gap-2 px-4 py-2 rounded-full bg-blue-100 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20 animate-fade-in">
           <span className="relative flex h-2 w-2">
@@ -51,7 +51,7 @@ const WelcomePage = ({ onGetStarted, theme, toggleTheme }) => {
 
           <h1 className="text-5xl md:text-8xl font-black tracking-tighter text-slate-900 dark:text-white mb-8">
             WireGuard
-            <span className="block mt-2 text-transparent bg-clip-text bg-gradient-to-r from-blue-500 via-cyan-500 to-indigo-600 dark:from-blue-400 dark:via-cyan-400 dark:to-indigo-500">
+            <span className="block mt-2 pb-3 leading-[1.15] text-transparent bg-clip-text bg-gradient-to-r from-blue-500 via-cyan-500 to-indigo-600 dark:from-blue-400 dark:via-cyan-400 dark:to-indigo-500">
               Config Generator
             </span>
           </h1>
@@ -106,23 +106,30 @@ const WelcomePage = ({ onGetStarted, theme, toggleTheme }) => {
           </div>
         </div>
 
-        {/* Scroll Indicator */}
-        <div className="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 opacity-30">
-          <div className="w-[1px] h-12 bg-gradient-to-b from-blue-500 to-transparent"></div>
-        </div>
       </div>
+
+      {/* Footer */}
+      <footer className="relative z-10 pb-8 text-center">
+        <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
+          Desarrollado por{" "}
+          <span className="font-bold text-slate-700 dark:text-slate-200">
+            InigualitySof
+          </span>{" "}
+          <span className="font-bold text-slate-700 dark:text-slate-200">- MAAT</span>
+        </p>
+      </footer>
     </div>
   );
 };
 
 // Subcomponente para las tarjetas de características para mantener el código limpio
 const FeatureCard = ({ icon, title, desc }) => (
-  <div className="group bg-white dark:bg-slate-900/40 backdrop-blur-xl border border-slate-200 dark:border-white/5 p-8 rounded-3xl transition-all duration-500 hover:border-blue-400 dark:hover:border-blue-500/50 hover:bg-slate-50 dark:hover:bg-slate-800/60 text-center shadow-sm dark:shadow-none">
-    <div className="mb-5 inline-flex p-4 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/5 group-hover:scale-110 transition-transform duration-500 shadow-inner">
+  <div className="group bg-white dark:bg-slate-900/80 backdrop-blur-xl border border-slate-200 dark:border-white/10 p-8 rounded-3xl transition-all duration-500 hover:border-blue-400 dark:hover:border-blue-500/50 hover:bg-slate-50 dark:hover:bg-slate-800/90 text-center shadow-sm dark:shadow-xl dark:shadow-black/40">
+    <div className="mb-5 inline-flex p-4 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 group-hover:scale-110 transition-transform duration-500 shadow-inner">
       {React.cloneElement(icon, { size: 28 })}
     </div>
     <h3 className="text-slate-900 dark:text-white font-bold text-xl mb-3 leading-tight">{title}</h3>
-    <p className="text-slate-500 dark:text-slate-400 text-sm leading-relaxed font-light">{desc}</p>
+    <p className="text-slate-500 dark:text-slate-300 text-sm leading-relaxed font-light">{desc}</p>
   </div>
 );
 
