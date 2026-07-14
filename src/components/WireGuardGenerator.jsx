@@ -1,4 +1,12 @@
-import { Server, Smartphone, ArrowLeft, Shield, LogOut, Save } from "lucide-react";
+import {
+  Server,
+  Smartphone,
+  ArrowLeft,
+  Shield,
+  LogOut,
+  Save,
+  FileSignature,
+} from "lucide-react";
 import MikroTikConfig from "./MikroTikConfig";
 import AppConfig from "./AppConfig";
 import ThemeToggle from "./ThemeToggle";
@@ -7,10 +15,15 @@ import { usePersistentState, clearSession } from "../hooks/useSessionState";
 const WireGuardGenerator = ({ onBackToHome, theme, toggleTheme }) => {
   const [activeTab, setActiveTab] = usePersistentState("activeTab", "mikrotik");
   const [sharedState, setSharedState] = usePersistentState("shared", {
+    sessionName: "",
     port: "",
     clientIp: "",
     endpointIp: "",
     network: "",
+    serverPrivateKey: "",
+    serverPublicKey: "",
+    clientPrivateKey: "",
+    clientPublicKey: "",
   });
 
   const handleEndSession = () => {
@@ -83,6 +96,29 @@ const WireGuardGenerator = ({ onBackToHome, theme, toggleTheme }) => {
 
         {/* Main Interface */}
         <div className="bg-white dark:bg-slate-900/60 backdrop-blur-xl rounded-[2rem] shadow-sm dark:shadow-2xl border border-slate-200 dark:border-white/10 overflow-hidden">
+          {/* Nombre de la sesión (se usa como nombre del archivo .conf) */}
+          <div className="flex items-center gap-3 px-5 py-4 border-b border-slate-200 dark:border-white/5 flex-wrap">
+            <label
+              htmlFor="session-name"
+              className="flex items-center gap-2 text-sm font-semibold text-slate-700 dark:text-slate-300 whitespace-nowrap"
+            >
+              <FileSignature size={16} /> Nombre de la sesión
+            </label>
+            <input
+              id="session-name"
+              type="text"
+              value={sharedState.sessionName}
+              onChange={(e) =>
+                setSharedState({ ...sharedState, sessionName: e.target.value })
+              }
+              placeholder="wg-client"
+              className="flex-1 min-w-[180px] px-4 py-2.5 rounded-xl bg-white dark:bg-slate-800/60 border border-slate-200 dark:border-white/10 text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all"
+            />
+            <span className="text-xs text-slate-400 dark:text-slate-500">
+              Se usa como nombre del archivo .conf
+            </span>
+          </div>
+
           {/* Tabs */}
           <div className="flex p-2 bg-slate-100/70 dark:bg-black/20 gap-2 border-b border-slate-200 dark:border-white/5">
             <button

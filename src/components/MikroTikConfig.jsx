@@ -1,6 +1,17 @@
 import { useState } from "react";
-import { Copy, Check, Terminal, Info, Zap, Server, Dices } from "lucide-react";
+import {
+  Copy,
+  Check,
+  Terminal,
+  Info,
+  Zap,
+  Server,
+  Dices,
+  KeyRound,
+  RefreshCw,
+} from "lucide-react";
 import { usePersistentState } from "../hooks/useSessionState";
+import { generateTunnelKeys } from "../lib/wireguard";
 
 // --- Utilidades de red ---
 const ipToInt = (ip) =>
@@ -102,12 +113,29 @@ const MikroTikConfig = ({ sharedState, setSharedState }) => {
   };
 
   const generateConfig = () => {
+    const sharedUpdates = {};
+
     // Puerto aleatorio si el usuario no definió uno
     let port = config.port;
     if (!port) {
       port = randomPort();
-      handleChange("port", port);
+      sharedUpdates.port = port;
     }
+
+    // Llaves automáticas si aún no existen (servidor + cliente)
+    let keys = {
+      serverPrivateKey: sharedState.serverPrivateKey,
+      serverPublicKey: sharedState.serverPublicKey,
+      clientPublicKey: sharedState.clientPublicKey,
+    };
+    if (!keys.serverPrivateKey || !keys.clientPublicKey) {
+      const generated = generateTunnelKeys();
+      keys = generated;
+      Object.assign(sharedUpdates, generated);
+    }
+
+    // El usuario puede sobrescribir la public key del cliente manualmente
+    const clientPublicKey = config.peerKey || keys.clientPublicKey;
 
     const wanName =
       config.natOutType === "list"
@@ -126,34 +154,42 @@ const MikroTikConfig = ({ sharedState, setSharedState }) => {
 
     const nat =
       config.natMode === "srcnat"
-        ? `add chain=srcnat src-address=${config.network} ${out} action=src-nat to-addresses=${publicIp} place-before=0`
-        : `add chain=srcnat src-address=${config.network} ${out} action=masquerade place-before=0`;
+        ? `/ip/firewall/nat/add chain=srcnat src-address=${config.network} ${out} action=src-nat to-addresses=${publicIp} place-before=0`
+        : `/ip/firewall/nat/add chain=srcnat src-address=${config.network} ${out} action=masquerade place-before=0`;
 
-    // Si el usuario eligió crear una lista nueva, añadimos el comando de creación
-    const listCreation =
-      config.natOutType === "list" && config.wanList === "custom" && wanName
-        ? `\n/interface/list\nadd name=${wanName} comment="Lista creada por WG Generator"\n`
-        : "";
+    // Formato "paste-safe": un comando completo por línea, con ruta absoluta.
+    // Sin líneas en blanco, sin continuaciones "\" y sin depender del contexto
+    // del path, para que al pegarlo en la terminal cada salto de línea ejecute
+    // una regla completa.
+    const lines = [
+      `/interface/wireguard/add name=${config.iface} listen-port=${port} private-key="${keys.serverPrivateKey}"`,
+      `/ip/address/add address=${config.wgIp} interface=${config.iface}`,
+    ];
 
-    const result = `/interface/wireguard/add name=${config.iface} listen-port=${port}
+    if (config.natOutType === "list" && config.wanList === "custom" && wanName) {
+      lines.push(`/interface/list/add name=${wanName}`);
+    }
 
-/ip address
-add address=${config.wgIp} interface=${config.iface}
-${listCreation}
-/ip firewall filter
-add chain=input protocol=udp dst-port=${port} action=accept comment="Allow WireGuard" place-before=0
-add chain=input src-address=${config.network} action=accept comment="Allow WireGuard Traffic" place-before=0
+    lines.push(
+      `/ip/firewall/filter/add chain=input protocol=udp dst-port=${port} action=accept comment="Allow WireGuard" place-before=0`,
+      `/ip/firewall/filter/add chain=forward src-address=${config.network} action=accept comment="Allow WireGuard Traffic" place-before=0`,
+      nat,
+      `/interface/wireguard/peers/add name=${config.peerName} interface=${config.iface} public-key="${clientPublicKey}" allowed-address=${config.peerAllowed}`
+    );
 
-/ip firewall nat
-${nat}
+    if (Object.keys(sharedUpdates).length) {
+      setConfig({ ...config, port });
+      setSharedState({ ...sharedState, ...sharedUpdates });
+    }
 
-/interface/wireguard/peers/add \\
-name=${config.peerName} \\
-interface=${config.iface} \\
-public-key="${config.peerKey}" \\
-allowed-address=${config.peerAllowed}`;
+    setOutput(lines.join("\n"));
+  };
 
-    setOutput(result);
+  const regenerateKeys = () => {
+    const generated = generateTunnelKeys();
+    setSharedState({ ...sharedState, ...generated });
+    // Limpiamos la override manual para que se use la llave recién generada
+    setConfig({ ...config, peerKey: "" });
   };
 
   const copyToClipboard = async () => {
@@ -324,14 +360,30 @@ allowed-address=${config.peerAllowed}`;
               Siguiente IP disponible tras el gateway. Puedes editarla.
             </p>
           </div>
-          <div className="md:col-span-2">
-            <InputField
-              label="Public Key del Cliente (WireGuard Windows)"
-              placeholder="Pega aquí la Public Key de tu WireGuard..."
-              value={config.peerKey}
-              onChange={(v) => handleChange("peerKey", v)}
-              mono
+          <div className="md:col-span-2 flex flex-col gap-2">
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+              <label className="text-sm font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-2">
+                <KeyRound size={14} /> Public Key del Cliente (automática)
+              </label>
+              <button
+                type="button"
+                onClick={regenerateKeys}
+                className="flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg bg-indigo-100 dark:bg-indigo-500/15 text-indigo-600 dark:text-indigo-300 ring-1 ring-indigo-200 dark:ring-indigo-500/20 hover:bg-indigo-200 dark:hover:bg-indigo-500/25 transition-colors"
+              >
+                <RefreshCw size={13} /> Generar llaves
+              </button>
+            </div>
+            <input
+              type="text"
+              value={config.peerKey || sharedState.clientPublicKey}
+              onChange={(e) => handleChange("peerKey", e.target.value)}
+              className="px-4 py-3 rounded-xl bg-white dark:bg-slate-800/60 border border-slate-200 dark:border-white/10 text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all font-mono text-[11px]"
+              placeholder="Se genera automáticamente al crear el script"
             />
+            <p className="text-xs text-slate-500">
+              Las llaves se generan aquí mismo (Curve25519). Ya no necesitas
+              buscarlas en el MikroTik: el script le impone su private-key.
+            </p>
           </div>
         </div>
       </section>

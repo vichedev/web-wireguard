@@ -9,6 +9,33 @@ const DEFAULT_CONFIG = {
   endpointIp: "",
 };
 
+// WireGuard usa el nombre del archivo como nombre del túnel y solo admite
+// [a-zA-Z0-9_=+.-] con un máximo de 32 caracteres.
+const safeTunnelName = (name) => {
+  const cleaned = (name || "")
+    .trim()
+    .replace(/\s+/g, "-")
+    .replace(/[^a-zA-Z0-9_=+.-]/g, "")
+    .slice(0, 32);
+  return cleaned || "wg-client";
+};
+
+// WireGuard (Windows) marca solo la casilla "Bloquear tráfico sin tunelizar"
+// (kill-switch) cuando AllowedIPs es exactamente 0.0.0.0/0. Emitiendo las dos
+// mitades equivalentes (0.0.0.0/1 + 128.0.0.0/1) se enruta el mismo espacio de
+// direcciones pero la casilla queda SIEMPRE desmarcada.
+const disableKillSwitch = (allowed) =>
+  (allowed || "")
+    .split(",")
+    .map((cidr) => cidr.trim())
+    .filter(Boolean)
+    .flatMap((cidr) => {
+      if (cidr === "0.0.0.0/0") return ["0.0.0.0/1", "128.0.0.0/1"];
+      if (cidr === "::/0") return ["::/1", "8000::/1"];
+      return [cidr];
+    })
+    .join(", ");
+
 const AppConfig = ({ sharedState, setSharedState }) => {
   const [config, setConfig] = usePersistentState("appclient", DEFAULT_CONFIG);
 
@@ -23,14 +50,19 @@ const AppConfig = ({ sharedState, setSharedState }) => {
     }
   };
 
+  // Las llaves vienen autogeneradas desde la pestaña MikroTik.
+  // El usuario puede sobrescribirlas manualmente si lo prefiere.
+  const privateKey = config.privateKey || sharedState.clientPrivateKey;
+  const serverKey = config.serverKey || sharedState.serverPublicKey;
+
   const buildConfig = () => `[Interface]
-PrivateKey = ${config.privateKey}
+PrivateKey = ${privateKey}
 Address = ${sharedState.clientIp || "10.0.0.2/32"}
 DNS = 8.8.8.8
 
 [Peer]
-PublicKey = ${config.serverKey}
-AllowedIPs = ${config.allowed}
+PublicKey = ${serverKey}
+AllowedIPs = ${disableKillSwitch(config.allowed)}
 Endpoint = ${config.endpointIp || sharedState.endpointIp}:${
     sharedState.port || "51820"
   }`;
@@ -43,7 +75,7 @@ Endpoint = ${config.endpointIp || sharedState.endpointIp}:${
     const blob = new Blob([buildConfig()], { type: "text/plain" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
-    a.download = "wg-client.conf";
+    a.download = `${safeTunnelName(sharedState.sessionName)}.conf`;
     a.click();
     URL.revokeObjectURL(a.href);
   };
@@ -69,14 +101,18 @@ Endpoint = ${config.endpointIp || sharedState.endpointIp}:${
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
         <div className="md:col-span-2">
-          <Label>PrivateKey (App)</Label>
+          <Label>PrivateKey del Cliente (automática)</Label>
           <input
             type="text"
-            value={config.privateKey}
+            value={privateKey}
             onChange={(e) => handleChange("privateKey", e.target.value)}
             className={inputCls + " font-mono text-sm"}
-            placeholder="Pega la Private Key de tu WireGuard (Windows)"
+            placeholder="Se genera automáticamente en la pestaña MikroTik"
           />
+          <Hint>
+            Generada aquí mismo (Curve25519). No necesitas sacarla de la app de
+            WireGuard.
+          </Hint>
         </div>
 
         <div>
@@ -104,14 +140,18 @@ Endpoint = ${config.endpointIp || sharedState.endpointIp}:${
         </div>
 
         <div className="md:col-span-2">
-          <Label>PublicKey MikroTik</Label>
+          <Label>PublicKey MikroTik (automática)</Label>
           <input
             type="text"
-            value={config.serverKey}
+            value={serverKey}
             onChange={(e) => handleChange("serverKey", e.target.value)}
             className={inputCls + " font-mono text-sm"}
-            placeholder="PublicKeyDelServidor=="
+            placeholder="Se genera automáticamente en la pestaña MikroTik"
           />
+          <Hint>
+            Ya no hace falta buscarla en el router: el script le impone esta
+            llave al MikroTik.
+          </Hint>
         </div>
 
         <div className="md:col-span-2">
@@ -142,6 +182,11 @@ Endpoint = ${config.endpointIp || sharedState.endpointIp}:${
               </Chip>
             )}
           </div>
+          <Hint>
+            Con &quot;Todo el tráfico&quot; se emite 0.0.0.0/1 + 128.0.0.0/1 (en
+            vez de 0.0.0.0/0) para que WireGuard deje SIEMPRE desmarcado
+            &quot;Bloquear tráfico sin tunelizar&quot;.
+          </Hint>
         </div>
 
         <div className="md:col-span-2">
@@ -173,7 +218,7 @@ Endpoint = ${config.endpointIp || sharedState.endpointIp}:${
           className="bg-slate-100 dark:bg-white/5 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-white/10 py-3.5 px-6 rounded-2xl font-bold hover:bg-slate-200 dark:hover:bg-white/10 transition flex items-center justify-center gap-2"
         >
           <Download size={18} />
-          Descargar .conf
+          Descargar {safeTunnelName(sharedState.sessionName)}.conf
         </button>
       </div>
 
