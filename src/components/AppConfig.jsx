@@ -50,6 +50,16 @@ const AppConfig = ({ sharedState, setSharedState }) => {
     }
   };
 
+  // Añade un rango a AllowedIPs (separado por coma) sin duplicarlo
+  const addRange = (cidr) => {
+    const current = (config.allowed || "")
+      .split(",")
+      .map((c) => c.trim())
+      .filter(Boolean);
+    if (current.includes(cidr)) return;
+    handleChange("allowed", [...current, cidr].join(", "));
+  };
+
   // Las llaves vienen autogeneradas desde la pestaña MikroTik.
   // El usuario puede sobrescribirlas manualmente si lo prefiere.
   const privateKey = config.privateKey || sharedState.clientPrivateKey;
@@ -155,13 +165,14 @@ Endpoint = ${config.endpointIp || sharedState.endpointIp}:${
         </div>
 
         <div className="md:col-span-2">
-          <Label>AllowedIPs</Label>
+          <Label>AllowedIPs (redes que viajan por el túnel)</Label>
           <input
             type="text"
             list="allowed-suggestions"
             value={config.allowed}
             onChange={(e) => handleChange("allowed", e.target.value)}
-            className={inputCls}
+            className={inputCls + " font-mono text-sm"}
+            placeholder="172.16.254.0/24, 10.254.254.0/24"
           />
           <datalist id="allowed-suggestions">
             <option value="0.0.0.0/0" label="Todo el tráfico (VPN completa)" />
@@ -172,7 +183,23 @@ Endpoint = ${config.endpointIp || sharedState.endpointIp}:${
               />
             )}
           </datalist>
-          <div className="flex flex-wrap gap-2 mt-2">
+
+          {/* Ayuda de sintaxis: varios rangos = separados por coma */}
+          <div className="mt-2 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-black/20 px-4 py-3">
+            <p className="text-xs text-slate-600 dark:text-slate-300">
+              ¿Varias redes? Sepáralas con{" "}
+              <strong className="font-bold">coma</strong>:
+            </p>
+            <code className="block mt-1.5 text-xs font-mono text-emerald-700 dark:text-emerald-300">
+              172.16.254.0/24, 10.254.254.0/24
+            </code>
+            <p className="text-xs text-slate-400 dark:text-slate-500 mt-1.5">
+              El espacio tras la coma es opcional (WireGuard lo ignora); se
+              normaliza solo al generar.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap gap-2 mt-3">
             <Chip onClick={() => handleChange("allowed", "0.0.0.0/0")}>
               Todo el tráfico
             </Chip>
@@ -181,7 +208,13 @@ Endpoint = ${config.endpointIp || sharedState.endpointIp}:${
                 Solo red VPN ({sharedState.network})
               </Chip>
             )}
+            {sharedState.network && (
+              <Chip onClick={() => addRange(sharedState.network)}>
+                + Añadir red VPN
+              </Chip>
+            )}
           </div>
+
           <Hint>
             Con &quot;Todo el tráfico&quot; se emite 0.0.0.0/1 + 128.0.0.0/1 (en
             vez de 0.0.0.0/0) para que WireGuard deje SIEMPRE desmarcado
